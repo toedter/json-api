@@ -27,25 +27,33 @@ document are to be interpreted as described in
 [[RFC8174](https://tools.ietf.org/html/rfc8174)]
 when, and only when, they appear in all capitals, as shown here.
 
-## <a href="#content-negotiation" id="content-negotiation" class="headerlink"></a> Content Negotiation
+## The JSON:API Media Type
 
-### <a href="#content-negotiation-all" id="content-negotiation-all" class="headerlink"></a> Universal Responsibilities
-
-The JSON:API media type is [`application/vnd.api+json`](http://www.iana.org/assignments/media-types/application/vnd.api+json).
-Clients and servers **MUST** send all JSON:API data using this media type in the
-`Content-Type` header.
-
-Further, the JSON:API media type **MUST NOT** be specified with any parameters
-other than `ext` and `profile`. This applies to both the `Content-Type` and
-`Accept` headers.
-
-The `ext` parameter is used to support [extensions] and the `profile` parameter
-is used to support [profiles].
+The JSON:API media type is
+[`application/vnd.api+json`](http://www.iana.org/assignments/media-types/application/vnd.api+json).
+This media type **MUST NOT** be specified with any media type parameters other
+than `ext` and `profile`.
 
 > Note: A media type parameter is an extra piece of information that can
 accompany a media type. For example, in the header
 `Content-Type: text/html; charset="utf-8"`, the media type is `text/html` and
 `charset` is a parameter.
+
+The `ext` parameter is used to support [extensions] and the `profile` parameter
+is used to support [profiles]. The values of the `ext` and `profile` parameters
+**MUST** equal a space-separated (U+0020 SPACE, " ") list of extension or
+profile URIs, respectively.
+
+> Note: When serializing the `ext` or `profile` media type parameters, the HTTP
+> specification requires that parameter values be surrounded by quotation marks
+> (U+0022 QUOTATION MARK, "\"") if the value contains more than one URI.
+
+## <a href="#content-negotiation" id="content-negotiation" class="headerlink"></a> Content Negotiation
+
+### <a href="#content-negotiation-all" id="content-negotiation-all" class="headerlink"></a> Universal Responsibilities
+
+Clients and servers **MUST** send all JSON:API data using the JSON:API media
+type in the `Content-Type` header.
 
 > Note: These content negotiation requirements exist to allow future versions
 of this specification to add additional media type parameters.
@@ -129,11 +137,12 @@ If a document does not contain a top-level `data` key, the `included` member
 
 The top-level [links object][links] **MAY** contain the following members:
 
-* `self`: the [link][links] that generated the current response document.
+* `self`: the [link][links] that generated the current response document. If a
+  document has extensions or profiles applied to it, this link **SHOULD** be
+  represented by a [link object] with the `type` target attribute specifying the
+  JSON:API media type with all applicable parameters.
 * `related`: a [related resource link] when the primary data represents a
   resource relationship.
-* `profile`: an array of [links][link], each specifying a [profile][profiles]
-  in use in the document.
 * `describedby`: a [link] to a description document (e.g. OpenAPI or JSON
   Schema) for the current document.
 * [pagination] links for the primary data.
@@ -586,11 +595,6 @@ Link objects **MAY** also contain the members `hreflang`, `title`, and `type`.
 Each of these members **MUST** be used in accordance with their semantics as
 defined by [RFC8288 Section 3.4.1](https://tools.ietf.org/html/rfc8288#section-3.4.1).
 
-Except for the `profile` key in the top-level links object and the `type`
-key in an [error object]'s links object, each key present in a links object
-**MUST** have a single link as its value. The aforementioned `profile` and
-`type` keys, if present, **MUST** hold an array of links.
-
 In the example below, the `self` link is simply a URI string, whereas the
 `related` link uses the object form to provide meta information about a
 related resource collection as well as a schema that serves as a description
@@ -651,24 +655,25 @@ values.
 not be represented as a single concatenated string with its values separated by
 whitespace as might be the case in a [`Link` header serialization](https://tools.ietf.org/html/rfc8288#section-3.5).
 
-#### <a href="#profile-links" id="profile-links" class="headerlink"></a> Profile Links
+#### <a href="#extension-and-profile-links" id="extension-and-profile-links" class="headerlink"></a> Extension and Profile Links
 
-Like all [links][link], a link in an array of `profile` links can be represented
-with a [link object].
+Top-level links **MAY** contain the `ext` and `profile` members. The values of
+these members **MUST** be an array of [links][link]. Like all links, each can be
+represented with a string or a [link object].
 
-Here, the `profile` key specifies an array of `profile` links:
+Here is an example that includes links to both an extension and profiles:
 
 ```json
 "links": {
+  "ext": [
+    "https://jsonapi.org/ext/atomic"
+  ],
   "profile": [
     "http://example.com/profiles/flexible-pagination",
     "http://example.com/profiles/resource-versioning"
   ]
 }
 ```
-
-> Note: Additional link types, similar to `profile` links, may be specified in
-the future.
 
 ### <a href="#document-jsonapi-object" id="document-jsonapi-object" class="headerlink"></a> JSON:API Object
 
@@ -2060,9 +2065,9 @@ An error object **MAY** have the following members:
   * `about`: a [link][link] that leads to further details about this
     particular occurrence of the problem. When derefenced, this URI **SHOULD**
     return a human-readable description of the error.
-  * `type`: an array of [links][link] that identify the type of error
-    that this particular error is an instance of. This URI **SHOULD** be
-    dereferencable to a human-readable explanation of the general error.
+  * `type`: a [link][link] that identifies the type of error that this
+    particular error is an instance of. This URI **SHOULD** be dereferencable to
+    a human-readable explanation of the general error.
 * `status`: the HTTP status code applicable to this problem, expressed as a
   string value.
 * `code`: an application-specific error code, expressed as a string value.
