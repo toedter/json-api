@@ -7,7 +7,7 @@ status: wd
 
 JSON:API is a specification for how a client should request that resources be
 fetched or modified, and how a server should respond to those requests. JSON:API
-can also be easily extended with [profiles] and [extensions].
+can also be easily extended with [extensions] and [profiles].
 
 JSON:API is designed to minimize both the number of requests and the amount of
 data transmitted between clients and servers. This efficiency is achieved
@@ -34,24 +34,15 @@ The JSON:API media type is
 
 ### <a href="#media-type-parameters" id="media-type-parameters" class="headerlink"></a> Media Type Parameters
 
-The JSON:API media type **MUST NOT** be specified with any media type parameters
-other than `ext` and `profile`.
+The JSON:API specification supports two media type parameters: `ext` and
+`profile`, which are used to specify [extensions] and [profiles], respectively.
 
 > Note: A media type parameter is an extra piece of information that can
 accompany a media type. For example, in the header
 `Content-Type: text/html; charset="utf-8"`, the media type is `text/html` and
 `charset` is a parameter.
 
-The `ext` parameter is used to support [extensions] and the `profile` parameter
-is used to support [profiles]. The values of the `ext` and `profile` parameters
-**MUST** equal a space-separated (U+0020 SPACE, " ") list of extension or
-profile URIs, respectively.
-
-> Note: When serializing the `ext` or `profile` media type parameters, the HTTP
-> specification requires that parameter values be surrounded by quotation marks
-> (U+0022 QUOTATION MARK, "\"") if the value contains more than one URI.
-
-## Extensions and Profiles
+### Specification vs. Implementation Semantics
 
 All document members, query parameters, and processing rules defined by
 this specification are collectively called "specification semantics".
@@ -62,13 +53,41 @@ semantics".
 
 All other semantics are reserved for potential future use by this specification.
 
-Extensions can define additional specification semantics.
+### Extensions
 
-Profiles can define implementation semantics.
+Extensions provide a means to "extend" the base specification by defining
+additional specification semantics.
 
-Neither extensions nor profiles can alter specification semantics.
+Extensions cannot alter or remove specification semantics, nor can they specify
+implementation semantics.
 
-### Rules for Extensions
+### Profiles
+
+Profiles offer a means to share a particular usage of the specification among
+implementations.
+
+Profiles can specify implementation semantics, but cannot alter, add to, or
+remove specification semantics.
+
+### Rules for Media Type Parameters
+
+The JSON:API media type **MUST NOT** be specified with any media type parameters
+other than `ext` and `profile`.
+
+Extensions and profiles are each uniquely identified by a
+[URI](https://tools.ietf.org/html/rfc3986). Visiting an extension's or profile's
+URI **SHOULD** return documentation that describes its usage.
+
+The `ext` parameter is used to support [extensions] and the `profile` parameter
+is used to support [profiles]. The values of the `ext` and `profile` parameters
+**MUST** equal a space-separated (U+0020 SPACE, " ") list of extension or
+profile URIs, respectively.
+
+> Note: When serializing the `ext` or `profile` media type parameters, the HTTP
+> specification requires that parameter values be surrounded by quotation marks
+> (U+0022 QUOTATION MARK, "\"") if the value contains more than one URI.
+
+#### Rules for Extensions
 
 An extension **MAY** impose additional processing rules or further restrictions
 and it **MAY** define new object members as described below.
@@ -80,20 +99,9 @@ An extension **MAY** define new members within the document structure defined by
 this specification. The rules for extension members are covered
 [below](#extension-members).
 
-### Rules for Profiles
+#### Rules for Profiles
 
-A profile is a separate specification defining these additional semantics.
-
-[RFC 6906](https://tools.ietf.org/html/rfc6906) covers the nature of profile
-identification:
-
-> Profiles are identified by URI... The presence of a specific URI has to be
-  sufficient for a client to assert that a resource representation conforms to
-  a profile [regardless of any content that may or may not be available at that
-  URI].
-
-However, to aid human understanding, visiting a profile's URI **SHOULD** return
-documentation of the profile.
+The rules for profile usage are dictated by [RFC 6906](https://tools.ietf.org/html/rfc6906).
 
 ## <a href="#content-negotiation" id="content-negotiation" class="headerlink"></a> Content Negotiation
 
@@ -160,6 +168,10 @@ server **MUST** also respond with a `406 Not Acceptable`.
 If the `profile` parameter is received, a server **SHOULD** attempt to apply any
 requested profile(s) to its response. A server **MUST** ignore any profiles
 that it does not recognize.
+
+> Note: The above rules guarantee strict agreement on extensions between the
+  client and server, while the application of profiles is left to the discretion
+  of the server.
 
 Servers that support the `ext` or `profile` media type parameters **SHOULD**
 specify the `Vary` header with `Accept` as one of its values. This applies to
@@ -1809,7 +1821,7 @@ is an empty array or an array of [resource identifier objects][resource identifi
 If a client makes a `PATCH` request to a URL from a to-many
 [relationship link][relationships], the server **MUST** either completely
 replace every member of the relationship, return an appropriate error response
-if some resources can not be found or accessed, or return a `403 Forbidden`
+if some resources cannot be found or accessed, or return a `403 Forbidden`
 response if complete replacement is not allowed by the server.
 
 For example, the following request replaces every tag for an article:
